@@ -1,10 +1,11 @@
 #!/usr/bin/perl -w
 #
 # paste-dn.pl - http://paste.debian.net/ XML-RPC client
+#
 # Author: Hanno Hecker <vetinari@ankh-morp.org>
 # Licence: AGPL 3.0 (http://www.fsf.org/licensing/licenses/agpl-3.0.html)
-# Date: 2008-04-16
 # Version: $Id$
+# SVN: http://svn.ankh-morp.org:8080/tools/paste-dn/
 #
 # ToDo: 
 #  * add help texts
