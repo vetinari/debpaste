@@ -37,8 +37,17 @@ my %config = (
 );
 my $action = "help";
 my %help   = (
-        'add'  => "FIXME: help for 'add'",
-        'get'  => "FIXME: help for 'get'",
+        'add'  => "\n"
+             ."Usage: $0 add [OPTIONS] [CODE]\n"
+             ."  Adds a new paste to http://paste.debian.net/\n"
+             ."  If no code is given on the command line, it will read from\n"
+             ."  stdin.\n"
+             ."  Your paste infos are saved to $history\n",
+        'get'  => "\n"
+             ."Usage: $0 get [OPTIONS] ID\n"
+             ."  Fetches the paste with id ID from paste.debian.net\n"
+             ."  To 'download' a paste use something like\n"
+             ."   $0 get ID | tail -n +5 > OUTFILE\n",
         'del'  => "FIXME: help for 'del'",
         'lang' => "FIXME: help for 'lang'",
         # 'help' => "FIXME: help",
