@@ -15,6 +15,7 @@
 # 
 use strict;
 use Getopt::Long;
+my %config;
 
 sub usage {
     return <<_END;
@@ -44,7 +45,7 @@ my $settings = $ENV{HOME}."/.paste-dn.rc";
 ## KeYInAnyCaSE: value
 ## AnoThErKey: other-value
 my $history  = $ENV{HOME}."/.paste-dn.history";
-my %config = (
+%config = (
     server   => "http://paste.debian.net/server.pl",
     user     => "anonymous",
     lang     => "",
