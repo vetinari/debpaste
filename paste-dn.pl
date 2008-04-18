@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 #
-# paste-dn.pl - http://paste.debian.net/ XML-RPC client
+# paste-dn - http://paste.debian.net/ XML-RPC client
 #
 # Author: Hanno Hecker <vetinari@ankh-morp.org>
 # Licence: AGPL 3.0 (http://www.fsf.org/licensing/licenses/agpl-3.0.html)
@@ -15,6 +15,24 @@
 # 
 use strict;
 use Getopt::Long;
+
+sub usage {
+    return <<_END;
+$0: Usage: $0 ACTION [OPTIONS] [CODE]
+  valid actions are: add, del, get, lang
+  for more specific info on these actions use 
+    $0 help ACTION
+  Available OPTIONS:
+    --help          - this help 
+    --user=USERNAME - paste as USERNAME instead of "anonymous"
+    --server=URL    - use URL instead of $config{server}
+    --lang=LANG     - use LANG for syntax highlight 
+                      ('$0 lang' for available languages)
+    --expires=SEC   - expires in SEC seconds (def: $config{expires})
+    --version       - print version and exit
+_END
+}
+
 binmode(STDOUT, ":utf8");
 binmode(STDERR, ":utf8");
 
@@ -106,28 +124,13 @@ sub read_settings {
     close SET;
 }
 
-sub usage {
-    return <<_END;
-$0: Usage: $0 ACTION [OPTIONS] [CODE]
-  valid actions are: add, del, get, lang
-  for more specific info on these actions use 
-    $0 help ACTION
-  Available OPTIONS:
-    --help          - this help 
-    --user=USERNAME - paste as USERNAME instead of "anonymous"
-    --server=URL    - use URL instead of $config{server}
-    --lang=LANG     - use LANG for syntax highlight 
-                      ('$0 lang' for available languages)
-    --expires=SEC   - expires in SEC seconds (def: $config{expires})
-    --version       - print version and exit
-_END
-}
-
 sub help {
     print usage();
     print $help{$_[0]},"\n" if (exists $help{$_[0]});
     exit 0;
 }
+
+###################################################################
 
 package PasteDN;
 use Frontier::Client;
@@ -162,8 +165,7 @@ sub _error {
 
 sub lang {
     my $self  = shift;
-    my $paste = $self->{_service};
-    my $rc    = $paste->call("paste.getLanguages");
+    my $rc    = $self->{_service}->call("paste.getLanguages");
     die $rc->{statusmessage},"\n" if $rc->{rc};
     ## print $rc->{statusmessage},"\n";
     print "Available syntax highlights:\n";
@@ -176,8 +178,7 @@ sub get {
     my $self = shift;
     my $id   = shift @ARGV;
     die "$0: no id given\n" unless $id;
-    my $paste = $self->{_service};
-    my $rc    = $paste->call("paste.getPaste", $id);
+    my $rc    = $self->{_service}->call("paste.getPaste", $id);
     die $rc->{statusmessage},"\n" if $rc->{rc};
     # ugly, but dates are ok then...
     # FIXME: probably only works with paste.d.n's timezone:
@@ -197,15 +198,14 @@ sub edit {
     my $id   = shift @ARGV;
     die "$0: no id given\n" unless $id;
 
-    my $paste = $self->{_service};
-    my $rc    = $paste->call("paste.getPaste", $id);
+    my $rc    = $self->{_service}->call("paste.getPaste", $id);
     die $rc->{statusmessage},"\n" if $rc->{rc};
     my $new = $self->_spawn_editor($rc->{code});
     if (!$new or ($new eq $rc->{code})) {
         print "$0: not changed, aborting...\n";
         exit 0;
     }
-    $rc = $paste->call("paste.addPaste", $new,
+    $rc = $self->{_service}->call("paste.addPaste", $new,
                             $self->{user},
                             $self->{expires} - time,
                             $self->{lang});
@@ -224,23 +224,20 @@ sub _spawn_editor {
 
     $self->_error("Could not create temp file: $!")
       unless ($fh and $self->{_tempfile});
-    print $fh $txt
-      or $self->_error("Could not print to tempfile: $!");
-    close $fh
-      or $self->_error("Failed to close tempfile: $!");
-    my $exit = system $self->{editor}, $self->{_tempfile};
-    if ($exit != 0) {
-        if ($? == -1) {
-            $self->_error("failed to execute: $!");
-        }
-        elsif ($? & 127) {
-            $self->_error(sprintf('child died with signal %d, %s coredump',
-                            ($? & 127),  ($? & 128) ? 'with' : 'without'));
-        }
-        else {
-            $self->error(sprintf('editor exited with value %d', $? >> 8));
-        }
+    print $fh $txt or $self->_error("Could not print to tempfile: $!");
+    close $fh      or $self->_error("Failed to close tempfile: $!");
+
+    if (system($self->{editor}, $self->{_tempfile}) != 0) {
+        $self->_error("failed to execute: $!") 
+            if $? == -1;
+
+        $self->_error(sprintf('child died with signal %d, %s coredump',
+                            ($? & 127),  ($? & 128) ? 'with' : 'without'))
+            if $? & 127;
+
+        $self->error(sprintf('editor exited with value %d', $? >> 8));
     }
+
     open FH, $self->{_tempfile}
       or $self->_error("Failed to open temp file: $!");
     { 
@@ -252,6 +249,7 @@ sub _spawn_editor {
     return $txt;
 }
 
+sub delete { $_[0]->del(); }
 sub del {
     my $self = shift;
     my %entry = ();
@@ -276,8 +274,7 @@ sub del {
     die "$0: Entry $id expired at ", scalar(localtime($entry{Expires})),"\n"
       if ($entry{Expires} and $entry{Expires} < time);
 
-    my $paste = $self->{_service};
-    my $rc = $paste->call("paste.deletePaste", $entry{Digest});
+    my $rc = $self->{_service}->call("paste.deletePaste", $entry{Digest});
     die $rc->{statusmessage},"\n" if $rc->{rc};
     print $rc->{statusmessage},"\n",
           "$0: deleted paste id ",$rc->{id},"\n";
@@ -296,8 +293,7 @@ sub add {
     die "$0: no code given\n"
       unless $code;
 
-    my $paste = $self->{_service};
-    my $rc = $paste->call("paste.addPaste", $code, 
+    my $rc = $self->{_service}->call("paste.addPaste", $code, 
                             $self->{user}, 
                             $self->{expires} - time, 
                             $self->{lang});
