@@ -6,6 +6,9 @@
 # Licence: AGPL 3.0 (http://www.fsf.org/licensing/licenses/agpl-3.0.html)
 # Version: $Id$
 # SVN: http://svn.ankh-morp.org:8080/tools/paste-dn/
+# 
+# Required: 
+#  deb: perl-base perl-modules libtimedate-perl libfrontier-rpc-perl
 #
 # ToDo: 
 #  * "get" formatting?
