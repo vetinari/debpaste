@@ -8,12 +8,10 @@
 # SVN: http://svn.ankh-morp.org:8080/tools/paste-dn/
 #
 # ToDo: 
-#  * add help texts
-#  * "edit" action (i.e. "get", call system($EDITOR, $tempfile), "add")?
-#  * wishlist :)
 #  * "get" formatting?
 #  * delete expired or deleted entries from history file
 #  * iconv $code from $encoding to UTF-8 before adding?
+#  * wishlist :)
 # 
 use strict;
 use Getopt::Long;
@@ -48,8 +46,17 @@ my %help   = (
              ."  Fetches the paste with id ID from paste.debian.net\n"
              ."  To 'download' a paste use something like\n"
              ."   $0 get ID | tail -n +5 > OUTFILE\n",
-        'del'  => "FIXME: help for 'del'",
-        'lang' => "FIXME: help for 'lang'",
+        'del'  => "\n"
+             ."Usage: $0 del [OPTIONS] ID\n"
+             ."  Deletes paste with id ID. This must be an ID which you have\n"
+             ."  pasted before (and is in your history file)\n",
+        'lang' => "\n"
+             ."Usage: $0 lang [OPTIONS]\n"
+             ."  Dumps the list of available languages for syntax highlighting\n", 
+        'edit' => "\n"
+             ."Usage: $0 edit [OPTIONS] ID\n"
+             ."  Downloads the paste with id ID, spawns an editor (\$EDITOR)\n"
+             ."  and sends the edited file as new paste\n",
         # 'help' => "FIXME: help",
     );
 
@@ -126,6 +133,7 @@ package PasteDN;
 use Frontier::Client;
 use Date::Parse;
 use POSIX qw(strftime);
+use File::Temp qw(tempfile);
 
 sub new {
     my $me   = shift;
@@ -136,9 +144,20 @@ sub new {
     foreach (keys %args) {
         $self->{$_} = $args{$_};
     }
+    unless (exists $self->{editor}) {
+        $self->{editor} = $ENV{EDITOR} ? 
+                            $ENV{EDITOR} : ($ENV{VISUAL} ? 
+                                            $ENV{VISUAL} : "/usr/bin/editor");
+    }
     $self->{expires}  += time;
     $self->{_service} = Frontier::Client->new(url => $self->{server});
     $self;
+}
+
+sub _error {
+    my ($self, $msg) = @_;
+    unlink $self->{_tempfile} if $self->{_tempfile};
+    die "$0: $msg\n";
 }
 
 sub lang {
@@ -171,6 +190,66 @@ sub get {
           "Expires: $exp_date\n",
           "---------------------------------\n",
           $rc->{code},"\n";
+}
+
+sub edit {
+    my $self = shift;
+    my $id   = shift @ARGV;
+    die "$0: no id given\n" unless $id;
+
+    my $paste = $self->{_service};
+    my $rc    = $paste->call("paste.getPaste", $id);
+    die $rc->{statusmessage},"\n" if $rc->{rc};
+    my $new = $self->_spawn_editor($rc->{code});
+    if (!$new or ($new eq $rc->{code})) {
+        print "$0: not changed, aborting...\n";
+        exit 0;
+    }
+    $rc = $paste->call("paste.addPaste", $new,
+                            $self->{user},
+                            $self->{expires} - time,
+                            $self->{lang});
+    die $rc->{statusmessage},"\n"
+      if $rc->{rc};
+    print $rc->{statusmessage},"\n";
+    print "To delete this entry, use: $0 del $rc->{id}\n";
+    $self->save_entry($rc);
+}
+
+sub _spawn_editor {
+    my ($self, $txt) = @_;
+    my $fh;
+
+    ($fh, $self->{_tempfile}) = tempfile("paste-dn.XXXXXX", DIR => "/tmp");
+
+    $self->_error("Could not create temp file: $!")
+      unless ($fh and $self->{_tempfile});
+    print $fh $txt
+      or $self->_error("Could not print to tempfile: $!");
+    close $fh
+      or $self->_error("Failed to close tempfile: $!");
+    my $exit = system $self->{editor}, $self->{_tempfile};
+    if ($exit != 0) {
+        if ($? == -1) {
+            $self->_error("failed to execute: $!");
+        }
+        elsif ($? & 127) {
+            $self->_error(sprintf('child died with signal %d, %s coredump',
+                            ($? & 127),  ($? & 128) ? 'with' : 'without'));
+        }
+        else {
+            $self->error(sprintf('editor exited with value %d', $? >> 8));
+        }
+    }
+    open FH, $self->{_tempfile}
+      or $self->_error("Failed to open temp file: $!");
+    { 
+        local $/ = undef; 
+        $txt = <FH>; 
+    };
+    close FH;
+    unlink $self->{_tempfile};
+    return $txt;
 }
 
 sub del {
