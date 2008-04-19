@@ -12,7 +12,6 @@
 #
 # ToDo: 
 #  * "get" formatting?
-#  * delete expired or deleted entries from history file
 #  * iconv $code from $encoding to UTF-8 before adding?
 #  * wishlist :)
 # 
@@ -23,7 +22,7 @@ my %config;
 sub usage {
     return <<_END;
 $0: Usage: $0 ACTION [OPTIONS] [CODE]
-  valid actions are: add, del, get, lang
+  valid actions are: add, del, get, lang, expire
   for more specific info on these actions use 
     $0 help ACTION
   Available OPTIONS:
@@ -79,6 +78,10 @@ my %help   = (
              ."Usage: $0 edit [OPTIONS] ID\n"
              ."  Downloads the paste with id ID, spawns an editor (\$EDITOR)\n"
              ."  and sends the edited file as new paste\n",
+        'expire' => "\n"
+             ."Usage: $0 expire [OPTIONS] [ID]\n"
+             ."  Removes the entry ID from history file. If no ID is given,\n"
+             ."  it removes all entries which are expired.\n",
         # 'help' => "FIXME: help",
     );
 
@@ -106,7 +109,7 @@ if ($action and $action eq "help") {
 }
 
 my $paste = PasteDN->new(%config);
-if ($paste->can($action)) {
+if ($paste->can($action) and $action ne "new") {
     $paste->$action();
 }
 else {
@@ -282,6 +285,58 @@ sub del {
     die $rc->{statusmessage},"\n" if $rc->{rc};
     print $rc->{statusmessage},"\n",
           "$0: deleted paste id ",$rc->{id},"\n";
+    $self->_expire($rc->{id});
+}
+
+sub expire {
+    my $self = shift;
+    my $id   = shift @ARGV;
+    $self->_expire($id);
+}
+
+sub _expire {
+    my ($self, $id) = @_;
+    my @history = ();
+    my %entry;
+    my @ids = ();
+    open FILE, $self->{history_file}
+      or return;
+    { 
+        local $/ = "\n\n";
+        while (<FILE>) {
+            s#^[\n\s]+##ms;
+            s#[\n\s]+$##ms;
+            next unless $_;
+            %entry = map { /^(\S+):\s*(.*?)\s*$/;
+                           ($1, $2 ? $2 : "")     } split /\n/, $_;
+
+            ## print "ID: $entry{Entry}\n";
+            if ($id) {
+                if ($entry{Entry} and $entry{Entry} eq $id) {
+                    push @ids, $entry{Entry};
+                    next;
+                }
+            }
+            elsif ($entry{Expires} and $entry{Expires} < time) {
+                push @ids, $entry{Entry};
+                next;
+            }
+            push @history, { %entry };
+        }
+    }
+    close FILE;
+    open FILE, ">", $self->{history_file} 
+      or die "$0: Failed to open history file: $!\n";
+    foreach my $h (@history) {
+        foreach (keys %{$h}) {
+            next unless $_;
+            print FILE "$_: $h->{$_}\n";
+        }
+        print FILE "\n";
+    }
+    close FILE  or die "$0: failed to write: $!\n";
+    print "$0: expired ", scalar(@ids), " entries from history", 
+            (@ids ? ": ".join(", ", @ids) : ""), "\n";
 }
 
 sub add {
