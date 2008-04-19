@@ -40,7 +40,7 @@ binmode(STDOUT, ":utf8");
 binmode(STDERR, ":utf8");
 
 $0 =~ s#.*/##;
-my $VERSION = '0.3 ($Rev$)';
+my $VERSION = '0.4 ($Rev$)';
 my $settings = $ENV{HOME}."/.paste-dn.rc";
 
 ## Don't change, edit $settings file:
