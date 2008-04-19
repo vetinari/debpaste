@@ -23,6 +23,7 @@ paste-dn - http://paste.debian.net/ XML-RPC client
 use strict;
 use Getopt::Long;
 my %config;
+my $VERSION = '1.0 ($Rev$)';
 
 =head1 SYNOPSIS
 
@@ -141,7 +142,6 @@ binmode(STDOUT, ":utf8");
 binmode(STDERR, ":utf8");
 
 $0 =~ s#.*/##;
-my $VERSION = '0.4 ($Rev$)';
 
 =head1 FILES
 
