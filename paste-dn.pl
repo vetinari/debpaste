@@ -1,7 +1,12 @@
 #!/usr/bin/perl -w
 #
-# paste-dn - http://paste.debian.net/ XML-RPC client
-#
+
+=head1 NAME
+
+paste-dn - http://paste.debian.net/ XML-RPC client
+
+=cut 
+
 # Author: Hanno Hecker <vetinari@ankh-morp.org>
 # Licence: AGPL 3.0 (http://www.fsf.org/licensing/licenses/agpl-3.0.html)
 # Version: $Id$
@@ -19,9 +24,101 @@ use strict;
 use Getopt::Long;
 my %config;
 
+=head1 SYNOPSIS
+
+B<paste-dn> ACTION [OPTIONS] [CODE|ID]
+
+=head1 ACTIONS
+
+=over 4
+
+=item add
+
+Usage: paste-dn add [OPTIONS] [CODE]
+
+Adds a new paste to L<http://paste.debian.net/>. If no code is given on the
+command line, it will read from stdin.
+
+Your paste infos are saved to I<~/.paste-dn.history>
+
+=item del 
+
+Usage: paste-dn del [OPTIONS] ID
+
+Deletes paste with id ID. This must be an ID which you have pasted before 
+(and is in your history file)
+
+=item get
+
+Usage: paste-dn get [OPTIONS] ID
+
+Fetches the paste with id ID from L<http://paste.debian.net>. To C<download>
+a paste use something like
+
+ paste-dn get --noheader ID > OUTFILE
+
+=item lang
+
+Usage: paste-dn lang [OPTIONS]
+
+Dumps the list of available languages for syntax highlighting, use the 
+B<--lang=LANG> option when B<add>ing a paste.
+
+=item edit
+
+Usage: paste-dn edit [OPTIONS] ID
+
+Downloads the paste with id ID, spawns an editor, and sends the edited file
+as new paste.
+
+=item expire
+
+Usage: paste-dn expire [OPTIONS] [ID]
+
+Removes the entry ID from history file. If no ID is given it removes all 
+entries which are expired.
+
+=back 
+
+=head1 OPTIONS 
+
+=over 4
+
+=item --user=USERNAME 
+
+paste as USERNAME instead of C<anonymous>
+
+=item --server=URL
+
+use URL instead of http://paste.debian.net/server.pl
+
+=item --lang=LANG
+
+use LANG for syntax highlight ('paste-dn lang' for available languages)
+
+=item --expires=SEC 
+
+expires in SEC seconds (default: 259200 = 72h)
+
+=item --encoding=ENC
+
+when adding new paste, use ENC as encoding of file, default: UTF-8
+
+=item --noheader 
+
+when B<get>ting entries, don't print header, just dump the paste to stdout.
+
+=item --version
+
+print version and exit
+
+=back
+
+=cut
+
 sub usage {
     return <<_END;
-$0: Usage: $0 ACTION [OPTIONS] [CODE]
+$0: Usage: $0 ACTION [OPTIONS] [CODE|ID]
   valid actions are: add, del, get, lang, expire
   for more specific info on these actions use 
     $0 help ACTION
@@ -45,6 +142,29 @@ binmode(STDERR, ":utf8");
 
 $0 =~ s#.*/##;
 my $VERSION = '0.4 ($Rev$)';
+
+=head1 FILES
+
+=over 4
+
+=item ~/.paste-dn.rc
+
+The right place for setting default options like the username or expire values.
+Format is C<KeyInAnYCase: value>, example:
+  
+   User: Vetinari
+   Expires: 86400
+
+=item ~/.paste-dn.history
+
+All info about pastes done with B<paste-dn> are recorded here. This file
+is used to keep a record for B<del>eting entries after pasting. Use
+B<paste-dn expire> to remove old entries.
+
+=back
+
+=cut
+
 my $settings = $ENV{HOME}."/.paste-dn.rc";
 
 ## Don't change, edit $settings file:
@@ -405,5 +525,12 @@ sub save_entry {
       or die "$0: Failed to save paste: $!\n";
     close FILE             or die "$0: Failed to save paste: $!\n";
 }
+
+=head1 AUTHOR
+
+Hanno Hecker <vetinari@ankh-morp.org>
+
+=cut
+
 
 # vim: ts=4 sw=4 expandtab syn=perl
