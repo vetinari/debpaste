@@ -8,11 +8,11 @@
 # SVN: http://svn.ankh-morp.org:8080/tools/paste-dn/
 # 
 # Required: 
-#  deb: perl-base perl-modules libtimedate-perl libfrontier-rpc-perl
+#  deb: perl-base perl-modules 
+#       libtimedate-perl libfrontier-rpc-perl libtext-iconv-perl
 #
 # ToDo: 
 #  * "get" formatting?
-#  * iconv $code from $encoding to UTF-8 before adding?
 #  * wishlist :)
 # 
 use strict;
@@ -32,6 +32,10 @@ $0: Usage: $0 ACTION [OPTIONS] [CODE]
     --lang=LANG     - use LANG for syntax highlight 
                       ('$0 lang' for available languages)
     --expires=SEC   - expires in SEC seconds (def: $config{expires})
+    --encoding=ENC  - when adding new paste, use ENC as encoding of file, 
+                      default: UTF-8
+    --noheader      - when "get"ting entries, don't print header, just dump
+                      the paste to stdout.
     --version       - print version and exit
 _END
 }
@@ -53,6 +57,7 @@ my $history  = $ENV{HOME}."/.paste-dn.history";
     lang     => "",
     expires  => 86400 * 3, # 
     history_file => $history,
+    no_get_header => 0,
 );
 my $action = "help";
 my %help   = (
@@ -66,7 +71,7 @@ my %help   = (
              ."Usage: $0 get [OPTIONS] ID\n"
              ."  Fetches the paste with id ID from paste.debian.net\n"
              ."  To 'download' a paste use something like\n"
-             ."   $0 get ID | tail -n +5 > OUTFILE\n",
+             ."   $0 get --noheader ID > OUTFILE\n",
         'del'  => "\n"
              ."Usage: $0 del [OPTIONS] ID\n"
              ."  Deletes paste with id ID. This must be an ID which you have\n"
@@ -96,6 +101,8 @@ GetOptions(
         "server=s"  => \$config{server},
         "expires=s" => \$config{expires},
         "lang=s"    => \$config{lang},
+        "encoding=s"=> \$config{encoding},
+        "noheader"  => \$config{no_get_header},
         "help"      => sub { print &usage(); exit 0; },
         "version"   => sub { print "paste-dn v$VERSION\n"; exit 0; },
     )
@@ -144,6 +151,7 @@ use Frontier::Client;
 use Date::Parse;
 use POSIX qw(strftime);
 use File::Temp qw(tempfile);
+use Text::Iconv;
 
 sub new {
     my $me   = shift;
@@ -159,9 +167,23 @@ sub new {
                             $ENV{EDITOR} : ($ENV{VISUAL} ? 
                                             $ENV{VISUAL} : "/usr/bin/editor");
     }
+    $self->{encoding} = "UTF-8" unless $self->{encoding};
     $self->{expires}  += time;
     $self->{_service} = Frontier::Client->new(url => $self->{server});
     $self;
+}
+
+sub _to_utf8 {
+    my ($self,$txt) = @_;
+    my $enc = $self->{encoding};
+    return $txt if $enc eq "UTF-8";
+
+    my $i = eval { Text::Iconv->new($enc, "UTF-8"); };
+    die "$0: unsupported encoding $enc\n" if $@;
+
+    my $new = $i->convert($txt);
+    return $txt unless $new;
+    return $new;
 }
 
 sub _error {
@@ -193,11 +215,13 @@ sub get {
     my $sub_date = strftime('%Y-%m-%d %H:%M:%S', localtime $stime);
     my $exp_date = strftime('%Y-%m-%d %H:%M:%S', 
                     localtime($stime + $rc->{expiredate}));
-    print "User: ", $rc->{submitter}, "\n",
-          "Date: $sub_date\n",
-          "Expires: $exp_date\n",
-          "---------------------------------\n",
-          $rc->{code},"\n";
+    unless ($self->{no_get_header}) {
+        print "User: ", $rc->{submitter}, "\n",
+              "Date: $sub_date\n",
+              "Expires: $exp_date\n",
+              "---------------------------------\n";
+    }
+    print $rc->{code};
 }
 
 sub edit {
@@ -212,6 +236,8 @@ sub edit {
         print "$0: not changed, aborting...\n";
         exit 0;
     }
+    ## FIXME: text from paste.debian.net is probably UTF-8
+    ## $new = $self->_to_utf8($new);
     $rc = $self->{_service}->call("paste.addPaste", $new,
                             $self->{user},
                             $self->{expires} - time,
@@ -352,6 +378,7 @@ sub add {
     die "$0: no code given\n"
       unless $code;
 
+    $code = $self->_to_utf8($code);
     my $rc = $self->{_service}->call("paste.addPaste", $code, 
                             $self->{user}, 
                             $self->{expires} - time, 
