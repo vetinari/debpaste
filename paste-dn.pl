@@ -350,7 +350,7 @@ sub get {
               "Expires: $exp_date\n",
               "---------------------------------\n";
     }
-    print $rc->{code};
+    print $rc->{code},"\n";
 }
 
 sub edit {
