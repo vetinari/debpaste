@@ -93,6 +93,10 @@ paste as USERNAME instead of C<anonymous>
 
 use URL instead of http://paste.debian.net/server.pl
 
+=item --noproxy
+
+do not use the http proxy given in the environment variable C<http_proxy>
+
 =item --lang=LANG
 
 use LANG for syntax highlight ('paste-dn lang' for available languages)
@@ -126,6 +130,7 @@ $0: Usage: $0 ACTION [OPTIONS] [CODE|ID]
   Available OPTIONS:
     --help          - this help 
     --user=USERNAME - paste as USERNAME instead of "anonymous"
+    --noproxy       - do not use the proxy given in \$http_proxy
     --server=URL    - use URL instead of $config{server}
     --lang=LANG     - use LANG for syntax highlight 
                       ('$0 lang' for available languages)
@@ -289,7 +294,11 @@ sub new {
     }
     $self->{encoding} = "UTF-8" unless $self->{encoding};
     $self->{expires}  += time;
-    $self->{_service} = Frontier::Client->new(url => $self->{server});
+    my %fc = ( url => $self->{server} );
+    unless ($self->{noproxy}) {
+        $fc{proxy} = $ENV{http_proxy} if $ENV{http_proxy};
+    }
+    $self->{_service} = Frontier::Client->new(%fc);
     $self;
 }
 
