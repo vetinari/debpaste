@@ -124,7 +124,7 @@ print version and exit
 sub usage {
     return <<_END;
 $0: Usage: $0 ACTION [OPTIONS] [CODE|ID]
-  valid actions are: add, del, get, lang, expire
+  valid actions are: add, del, get, edit, lang, expire
   for more specific info on these actions use 
     $0 help ACTION
   Available OPTIONS:
