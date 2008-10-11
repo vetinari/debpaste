@@ -22,8 +22,9 @@ paste-dn - http://paste.debian.net/ XML-RPC client
 # 
 use strict;
 use Getopt::Long;
+use Pod::Usage;
 my %config;
-my $VERSION = '1.0 ($Rev$)';
+my $VERSION = '1.1 ($Rev$)';
 
 =head1 SYNOPSIS
 
@@ -121,28 +122,6 @@ print version and exit
 
 =cut
 
-sub usage {
-    return <<_END;
-$0: Usage: $0 ACTION [OPTIONS] [CODE|ID]
-  valid actions are: add, del, get, edit, lang, expire
-  for more specific info on these actions use 
-    $0 help ACTION
-  Available OPTIONS:
-    --help          - this help 
-    --user=USERNAME - paste as USERNAME instead of "anonymous"
-    --noproxy       - do not use the proxy given in \$http_proxy
-    --server=URL    - use URL instead of $config{server}
-    --lang=LANG     - use LANG for syntax highlight 
-                      ('$0 lang' for available languages)
-    --expires=SEC   - expires in SEC seconds (def: $config{expires})
-    --encoding=ENC  - when adding new paste, use ENC as encoding of file, 
-                      default: UTF-8
-    --noheader      - when "get"ting entries, don't print header, just dump
-                      the paste to stdout.
-    --version       - print version and exit
-_END
-}
-
 binmode(STDOUT, ":utf8");
 binmode(STDERR, ":utf8");
 
@@ -228,10 +207,10 @@ GetOptions(
         "lang=s"    => \$config{lang},
         "encoding=s"=> \$config{encoding},
         "noheader"  => \$config{no_get_header},
-        "help"      => sub { print &usage(); exit 0; },
+        "help"      => sub { pod2usage(-exitval => 0, -verbose => 2) },
         "version"   => sub { print "paste-dn v$VERSION\n"; exit 0; },
     )
-  or die &usage();
+  or pod2usage(-exitval => 1, -verbose => 2);
 
 if ($action and $action eq "help") {
     $action = shift @ARGV
@@ -241,7 +220,7 @@ if ($action and $action eq "help") {
 }
 
 my $paste = PasteDN->new(%config);
-if ($paste->can($action) and $action ne "new") {
+if ($paste->can($action) and $action ne "new" and $action !~ /^_/) {
     $paste->$action();
 }
 else {
@@ -264,9 +243,9 @@ sub read_settings {
 }
 
 sub help {
-    print usage();
-    print $help{$_[0]},"\n" if (exists $help{$_[0]});
-    exit 0;
+    my $msg = "";
+    ($msg = $help{$_[0]}."\n") if (exists $help{$_[0]});
+    pod2usage(-exitval => 0, -verbose => 2, -message => $msg);
 }
 
 ###################################################################
