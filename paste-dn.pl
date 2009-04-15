@@ -514,6 +514,11 @@ sub save_entry {
     close FILE             or die "$0: Failed to save paste: $!\n";
 }
 
+=head1 DOWNLOAD
+
+L<http://ankh-morp.org/code/paste-dn/paste-dn.pl> or 
+L<SVN|http://svn.ankh-morp.org:8080/tools/paste-dn/>
+
 =head1 AUTHOR
 
 Hanno Hecker <vetinari@ankh-morp.org>
