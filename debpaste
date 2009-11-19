@@ -3,7 +3,7 @@
 
 =head1 NAME
 
-paste-dn - http://paste.debian.net/ XML-RPC client
+debpaste - http://paste.debian.net/ XML-RPC client
 
 =cut 
 
@@ -28,7 +28,7 @@ my $VERSION = '1.1 ($Rev$)';
 
 =head1 SYNOPSIS
 
-B<paste-dn> ACTION [OPTIONS] [CODE|ID]
+B<debpaste> ACTION [OPTIONS] [CODE|ID]
 
 =head1 ACTIONS
 
@@ -36,46 +36,46 @@ B<paste-dn> ACTION [OPTIONS] [CODE|ID]
 
 =item add
 
-Usage: paste-dn add [OPTIONS] [CODE]
+Usage: debpaste add [OPTIONS] [CODE]
 
 Adds a new paste to L<http://paste.debian.net/>. If no code is given on the
 command line, it will read from stdin.
 
-Your paste infos are saved to I<~/.paste-dn.history>
+Your paste infos are saved to I<~/.debpaste.history>
 
 =item del 
 
-Usage: paste-dn del [OPTIONS] ID
+Usage: debpaste del [OPTIONS] ID
 
 Deletes paste with id ID. This must be an ID which you have pasted before 
 (and is in your history file)
 
 =item get
 
-Usage: paste-dn get [OPTIONS] ID
+Usage: debpaste get [OPTIONS] ID
 
 Fetches the paste with id ID from L<http://paste.debian.net>. To C<download>
 a paste use something like
 
- paste-dn get --noheader ID > OUTFILE
+ debpaste get --noheader ID > OUTFILE
 
 =item lang
 
-Usage: paste-dn lang [OPTIONS]
+Usage: debpaste lang [OPTIONS]
 
 Dumps the list of available languages for syntax highlighting, use the 
 B<--lang=LANG> option when B<add>ing a paste.
 
 =item edit
 
-Usage: paste-dn edit [OPTIONS] ID
+Usage: debpaste edit [OPTIONS] ID
 
 Downloads the paste with id ID, spawns an editor, and sends the edited file
 as new paste.
 
 =item expire
 
-Usage: paste-dn expire [OPTIONS] [ID]
+Usage: debpaste expire [OPTIONS] [ID]
 
 Removes the entry ID from history file. If no ID is given it removes all 
 entries which are expired.
@@ -100,7 +100,7 @@ do not use the http proxy given in the environment variable C<http_proxy>
 
 =item --lang=LANG
 
-use LANG for syntax highlight ('paste-dn lang' for available languages)
+use LANG for syntax highlight ('debpaste lang' for available languages)
 
 =item --expires=SEC 
 
@@ -131,7 +131,7 @@ $0 =~ s#.*/##;
 
 =over 4
 
-=item ~/.paste-dn.rc
+=item ~/.debpaste.rc
 
 The right place for setting default options like the username or expire values.
 Format is C<KeyInAnYCase: value>, example:
@@ -139,22 +139,22 @@ Format is C<KeyInAnYCase: value>, example:
    User: Vetinari
    Expires: 86400
 
-=item ~/.paste-dn.history
+=item ~/.debpaste.history
 
-All info about pastes done with B<paste-dn> are recorded here. This file
+All info about pastes done with B<debpaste> are recorded here. This file
 is used to keep a record for B<del>eting entries after pasting. Use
-B<paste-dn expire> to remove old entries.
+B<debpaste expire> to remove old entries.
 
 =back
 
 =cut
 
-my $settings = $ENV{HOME}."/.paste-dn.rc";
+my $settings = $ENV{HOME}."/.debpaste.rc";
 
 ## Don't change, edit $settings file:
 ## KeYInAnyCaSE: value
 ## AnoThErKey: other-value
-my $history  = $ENV{HOME}."/.paste-dn.history";
+my $history  = $ENV{HOME}."/.debpaste.history";
 %config = (
     server   => "http://paste.debian.net/server.pl",
     user     => "anonymous",
@@ -208,7 +208,7 @@ GetOptions(
         "encoding=s"=> \$config{encoding},
         "noheader"  => \$config{no_get_header},
         "help"      => sub { pod2usage(-exitval => 0, -verbose => 2) },
-        "version"   => sub { print "paste-dn v$VERSION\n"; exit 0; },
+        "version"   => sub { print "debpaste v$VERSION\n"; exit 0; },
     )
   or pod2usage(-exitval => 1, -verbose => 2);
 
@@ -361,7 +361,7 @@ sub _spawn_editor {
     my ($self, $txt) = @_;
     my $fh;
 
-    ($fh, $self->{_tempfile}) = tempfile("paste-dn.XXXXXX", DIR => "/tmp");
+    ($fh, $self->{_tempfile}) = tempfile("debpaste.XXXXXX", DIR => "/tmp");
 
     $self->_error("Could not create temp file: $!")
       unless ($fh and $self->{_tempfile});
@@ -516,7 +516,7 @@ sub save_entry {
 
 =head1 DOWNLOAD
 
-L<http://ankh-morp.org/code/paste-dn/paste-dn.pl> or 
+L<http://ankh-morp.org/code/paste-dn/debpaste> or 
 L<SVN|http://svn.ankh-morp.org:8080/tools/paste-dn/>
 
 =head1 AUTHOR
