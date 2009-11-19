@@ -354,7 +354,7 @@ sub edit {
       if $rc->{rc};
     print $rc->{statusmessage},"\n";
     print "To delete this entry, use: $0 del $rc->{id}\n";
-    $self->save_entry($rc);
+    $self->_save_entry($rc);
 }
 
 sub _spawn_editor {
@@ -495,10 +495,10 @@ sub add {
       if $rc->{rc};
     print $rc->{statusmessage},"\n";
     print "To delete this entry, use: $0 del $rc->{id}\n";
-    $self->save_entry($rc);
+    $self->_save_entry($rc);
 }
 
-sub save_entry {
+sub _save_entry {
     my ($self, $rc) = @_;
     # return unless $self->{save_pastes};
     my $file = $self->{history_file}
