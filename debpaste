@@ -519,6 +519,10 @@ sub save_entry {
 L<http://ankh-morp.org/code/paste-dn/debpaste> or 
 L<SVN|http://svn.ankh-morp.org:8080/tools/paste-dn/>
 
+=head1 NOTES
+
+Renamed to C<debpaste> at Rev. 20
+
 =head1 AUTHOR
 
 Hanno Hecker <vetinari@ankh-morp.org>
