@@ -94,6 +94,10 @@ paste as USERNAME instead of C<anonymous>
 
 use URL instead of http://paste.debian.net/server.pl
 
+=item --hidden
+
+post as hidden entry
+
 =item --noproxy
 
 do not use the http proxy given in the environment variable C<http_proxy>
@@ -162,6 +166,7 @@ my $history  = $ENV{HOME}."/.debpaste.history";
     expires  => 86400 * 3, # 
     history_file => $history,
     no_get_header => 0,
+    hidden   => 0,
 );
 my $action = "help";
 my %help   = (
@@ -207,6 +212,7 @@ GetOptions(
         "lang=s"    => \$config{lang},
         "encoding=s"=> \$config{encoding},
         "noheader"  => \$config{no_get_header},
+        "hidden"    => \$config{hidden},
         "help"      => sub { pod2usage(-exitval => 0, -verbose => 2) },
         "version"   => sub { print "debpaste v$VERSION\n"; exit 0; },
     )
@@ -349,7 +355,8 @@ sub edit {
     $rc = $self->{_service}->call("paste.addPaste", $new,
                             $self->{user},
                             $self->{expires} - time,
-                            $self->{lang});
+                            $self->{lang},
+                            $self->{hidden});
     die $rc->{statusmessage},"\n"
       if $rc->{rc};
     print $rc->{statusmessage},"\n";
@@ -490,7 +497,8 @@ sub add {
     my $rc = $self->{_service}->call("paste.addPaste", $code, 
                             $self->{user}, 
                             $self->{expires} - time, 
-                            $self->{lang});
+                            $self->{lang},
+                            $self->{hidden});
     die $rc->{statusmessage},"\n" 
       if $rc->{rc};
     print $rc->{statusmessage},"\n";
@@ -509,6 +517,7 @@ sub _save_entry {
                "Entry: ",   $rc->{id},       "\n",
                "Lang: ",    $self->{lang},   "\n",
                "Expires: ", $self->{expires},"\n",
+               "Hidden: ",  $self->{hidden}, "\n",
                "Digest: ",  $rc->{digest},   "\n\n"
       or die "$0: Failed to save paste: $!\n";
     close FILE             or die "$0: Failed to save paste: $!\n";
