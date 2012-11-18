@@ -383,7 +383,7 @@ sub _spawn_editor {
                             ($? & 127),  ($? & 128) ? 'with' : 'without'))
             if $? & 127;
 
-        $self->error(sprintf('editor exited with value %d', $? >> 8));
+        $self->_error(sprintf('editor exited with value %d', $? >> 8));
     }
 
     open FH, $self->{_tempfile}
