@@ -5,26 +5,24 @@
 
 debpaste - http://paste.debian.net/ XML-RPC client
 
-=cut 
+=cut
 
 # Author: Hanno Hecker <vetinari@ankh-morp.org>
 # Licence: AGPL 3.0 (http://www.fsf.org/licensing/licenses/agpl-3.0.html)
-# Version: $Id$
-# SVN: http://svn.ankh-morp.org:8080/tools/paste-dn/
-# 
-# Required: 
-#  deb: perl-base perl-modules 
+#
+# Required:
+#  deb: perl-base perl-modules
 #       libtimedate-perl libfrontier-rpc-perl libtext-iconv-perl
 #
-# ToDo: 
+# ToDo:
 #  * "get" formatting?
 #  * wishlist :)
-# 
+#
 use strict;
 use Getopt::Long;
 use Pod::Usage;
 my %config;
-my $VERSION = '1.1 ($Rev$)';
+my $VERSION = '1.1';
 
 =head1 SYNOPSIS
 
@@ -43,11 +41,11 @@ command line, it will read from stdin.
 
 Your paste infos are saved to I<~/.debpaste.history>
 
-=item del 
+=item del
 
 Usage: debpaste del [OPTIONS] ID
 
-Deletes paste with id ID. This must be an ID which you have pasted before 
+Deletes paste with id ID. This must be an ID which you have pasted before
 (and is in your history file)
 
 =item get
@@ -63,7 +61,7 @@ a paste use something like
 
 Usage: debpaste lang [OPTIONS]
 
-Dumps the list of available languages for syntax highlighting, use the 
+Dumps the list of available languages for syntax highlighting, use the
 B<--lang=LANG> option when B<add>ing a paste.
 
 =item edit
@@ -77,16 +75,16 @@ as new paste.
 
 Usage: debpaste expire [OPTIONS] [ID]
 
-Removes the entry ID from history file. If no ID is given it removes all 
+Removes the entry ID from history file. If no ID is given it removes all
 entries which are expired.
 
-=back 
+=back
 
-=head1 OPTIONS 
+=head1 OPTIONS
 
 =over 4
 
-=item --user=USERNAME 
+=item --user=USERNAME
 
 paste as USERNAME instead of C<anonymous>
 
@@ -106,7 +104,7 @@ do not use the http proxy given in the environment variable C<http_proxy>
 
 use LANG for syntax highlight ('debpaste lang' for available languages)
 
-=item --expires=SEC 
+=item --expires=SEC
 
 expires in SEC seconds (default: 259200 = 72h)
 
@@ -114,7 +112,7 @@ expires in SEC seconds (default: 259200 = 72h)
 
 when adding new paste, use ENC as encoding of file, default: UTF-8
 
-=item --noheader 
+=item --noheader
 
 when B<get>ting entries, don't print header, just dump the paste to stdout.
 
@@ -139,7 +137,7 @@ $0 =~ s#.*/##;
 
 The right place for setting default options like the username or expire values.
 Format is C<KeyInAnYCase: value>, example:
-  
+
    User: Vetinari
    Expires: 86400
 
@@ -163,7 +161,7 @@ my $history  = $ENV{HOME}."/.debpaste.history";
     server   => "http://paste.debian.net/server.pl",
     user     => "anonymous",
     lang     => "",
-    expires  => 86400 * 3, # 
+    expires  => 86400 * 3, #
     history_file => $history,
     no_get_header => 0,
     hidden   => 0,
@@ -187,7 +185,7 @@ my %help   = (
              ."  pasted before (and is in your history file)\n",
         'lang' => "\n"
              ."Usage: $0 lang [OPTIONS]\n"
-             ."  Dumps the list of available languages for syntax highlighting\n", 
+             ."  Dumps the list of available languages for syntax highlighting\n",
         'edit' => "\n"
              ."Usage: $0 edit [OPTIONS] ID\n"
              ."  Downloads the paste with id ID, spawns an editor (\$EDITOR)\n"
@@ -273,8 +271,8 @@ sub new {
         $self->{$_} = $args{$_};
     }
     unless (exists $self->{editor}) {
-        $self->{editor} = $ENV{EDITOR} ? 
-                            $ENV{EDITOR} : ($ENV{VISUAL} ? 
+        $self->{editor} = $ENV{EDITOR} ?
+                            $ENV{EDITOR} : ($ENV{VISUAL} ?
                                             $ENV{VISUAL} : "/usr/bin/editor");
     }
     $self->{encoding} = "UTF-8" unless $self->{encoding};
@@ -327,7 +325,7 @@ sub get {
     # FIXME: probably only works with paste.d.n's timezone:
     my $stime    = str2time($rc->{submitdate}, "CET") - 3600;
     my $sub_date = strftime('%Y-%m-%d %H:%M:%S', localtime $stime);
-    my $exp_date = strftime('%Y-%m-%d %H:%M:%S', 
+    my $exp_date = strftime('%Y-%m-%d %H:%M:%S',
                     localtime($stime + $rc->{expiredate}));
     unless ($self->{no_get_header}) {
         print "User: ", $rc->{submitter}, "\n",
@@ -376,7 +374,7 @@ sub _spawn_editor {
     close $fh      or $self->_error("Failed to close tempfile: $!");
 
     if (system($self->{editor}, $self->{_tempfile}) != 0) {
-        $self->_error("failed to execute: $!") 
+        $self->_error("failed to execute: $!")
             if $? == -1;
 
         $self->_error(sprintf('child died with signal %d, %s coredump',
@@ -388,9 +386,9 @@ sub _spawn_editor {
 
     open FH, $self->{_tempfile}
       or $self->_error("Failed to open temp file: $!");
-    { 
-        local $/ = undef; 
-        $txt = <FH>; 
+    {
+        local $/ = undef;
+        $txt = <FH>;
     };
     close FH;
     unlink $self->{_tempfile};
@@ -405,8 +403,8 @@ sub del {
     die "$0: no id given\n" unless $id;
     open FILE, $self->{history_file}
       or die "$0: failed to open history file: $!\n";
-    { 
-        local $/ = "\n\n"; 
+    {
+        local $/ = "\n\n";
         while (<FILE>) {
             s#^[\n\s]+##ms;
             s#[\n\s]+$##ms;
@@ -442,7 +440,7 @@ sub _expire {
     my @ids = ();
     open FILE, $self->{history_file}
       or return;
-    { 
+    {
         local $/ = "\n\n";
         while (<FILE>) {
             s#^[\n\s]+##ms;
@@ -466,7 +464,7 @@ sub _expire {
         }
     }
     close FILE;
-    open FILE, ">", $self->{history_file} 
+    open FILE, ">", $self->{history_file}
       or die "$0: Failed to open history file: $!\n";
     foreach my $h (@history) {
         foreach (keys %{$h}) {
@@ -476,7 +474,7 @@ sub _expire {
         print FILE "\n";
     }
     close FILE  or die "$0: failed to write: $!\n";
-    print "$0: expired ", scalar(@ids), " entries from history", 
+    print "$0: expired ", scalar(@ids), " entries from history",
             (@ids ? ": ".join(", ", @ids) : ""), "\n";
 }
 
@@ -494,12 +492,12 @@ sub add {
       unless $code;
 
     $code = $self->_to_utf8($code);
-    my $rc = $self->{_service}->call("paste.addPaste", $code, 
-                            $self->{user}, 
-                            $self->{expires} - time, 
+    my $rc = $self->{_service}->call("paste.addPaste", $code,
+                            $self->{user},
+                            $self->{expires} - time,
                             $self->{lang},
                             $self->{hidden});
-    die $rc->{statusmessage},"\n" 
+    die $rc->{statusmessage},"\n"
       if $rc->{rc};
     print $rc->{statusmessage},"\n";
     print "To delete this entry, use: $0 del $rc->{id}\n";
@@ -523,14 +521,9 @@ sub _save_entry {
     close FILE             or die "$0: Failed to save paste: $!\n";
 }
 
-=head1 DOWNLOAD
-
-L<http://ankh-morp.org/code/paste-dn/debpaste> or 
-L<SVN|http://svn.ankh-morp.org:8080/tools/paste-dn/>
-
 =head1 NOTES
 
-Renamed to C<debpaste> at Rev. 20
+Renamed to C<debpaste> at svn Rev. 20
 
 =head1 AUTHOR
 
