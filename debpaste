@@ -260,6 +260,7 @@ use Date::Parse;
 use POSIX qw(strftime);
 use File::Temp qw(tempfile);
 use Text::Iconv;
+use Encode;
 
 sub new {
     my $me   = shift;
@@ -492,6 +493,8 @@ sub add {
       unless $code;
 
     $code = $self->_to_utf8($code);
+    $code = decode('UTF-8', $code);
+
     my $rc = $self->{_service}->call("paste.addPaste", $code,
                             $self->{user},
                             $self->{expires} - time,
